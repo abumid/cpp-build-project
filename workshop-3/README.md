@@ -1,6 +1,6 @@
 # Workshop 3: Exchange Order Book (Part 1)
 
-Homework for the Open Avenues **"C++ Systems for Finance: Build a Trading Exchange from Scratch"** workshops. It follows *Building Low Latency Applications with C++* (Sourav Ghosh, 2023).
+Homework for the Open Avenues **"C++ Systems for Finance: Build a Trading Exchange from Scratch"** workshops.
 
 **Homework:**
 - `order.h`: an `Order` class with `toString()`

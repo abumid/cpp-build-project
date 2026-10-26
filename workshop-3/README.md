@@ -1,11 +1,11 @@
 # Workshop 3: Exchange Order Book (Part 1)
 
+Homework for the Open Avenues **"C++ Systems for Finance: Build a Trading Exchange from Scratch"** workshops. It follows *Building Low Latency Applications with C++* (Sourav Ghosh, 2023).
+
 **Homework:**
 - `order.h`: an `Order` class with `toString()`
 - `order_book.h`: an `OrderBook` with `add(order)`, `cancel(orderId)` and `toString()`
 - Use `MemPool` to allocate orders, pick the data structures, and test the implementation
-
-Homework for the Open Avenues **"C++ Systems for Finance: Build a Trading Exchange from Scratch"** workshops. It follows *Building Low Latency Applications with C++* (Sourav Ghosh, 2023).
 
 | File | Contents |
 |---|---|

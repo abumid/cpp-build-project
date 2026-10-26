@@ -1,0 +1,799 @@
+<title>Orderbook Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #eef1f6;
+  --panel: #ffffff;
+  --panel-2: #f6f8fb;
+  --ink: #141b2d;
+  --muted: #5d6679;
+  --line: #dde2ea;
+  --accent: #2f4fd0;
+  --accent-ink: #ffffff;
+  --bid: #0d8a74;
+  --bid-soft: rgba(13, 138, 116, 0.12);
+  --ask: #cc3d57;
+  --ask-soft: rgba(204, 61, 87, 0.11);
+  --warn: #a8660b;
+  --warn-soft: rgba(168, 102, 11, 0.12);
+  --code-bg: #f3f5fa;
+  --font-display: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c111c; --panel: #131a29; --panel-2: #182134; --ink: #e5e9f2; --muted: #8b94a8; --line: #253049;
+    --accent: #7f97ff; --accent-ink: #0c111c; --bid: #2fc3a2; --bid-soft: rgba(47, 195, 162, 0.13);
+    --ask: #ff6f86; --ask-soft: rgba(255, 111, 134, 0.12); --warn: #f0b062; --warn-soft: rgba(240, 176, 98, 0.13);
+    --code-bg: #0f1523; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c111c; --panel: #131a29; --panel-2: #182134; --ink: #e5e9f2; --muted: #8b94a8; --line: #253049;
+  --accent: #7f97ff; --accent-ink: #0c111c; --bid: #2fc3a2; --bid-soft: rgba(47, 195, 162, 0.13);
+  --ask: #ff6f86; --ask-soft: rgba(255, 111, 134, 0.12); --warn: #f0b062; --warn-soft: rgba(240, 176, 98, 0.13);
+  --code-bg: #0f1523; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); }
+body { font-family: var(--font-body); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-block: 16px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 14px; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand h1 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+.pair { font-family: var(--font-mono); font-weight: 600; font-size: 13px; padding: 4px 9px; border-radius: 6px;
+  background: var(--panel); border: 1px solid var(--line); }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-left: auto; }
+.stat { display: grid; gap: 1px; }
+.stat .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.stat .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+.stat .v.big { font-size: 17px; font-weight: 600; }
+.up { color: var(--bid); } .down { color: var(--ask); }
+
+.scenarios { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.scenarios .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.caption { font-size: 13px; color: var(--muted); min-height: 1.4em; flex: 1 1 260px; }
+.caption b { color: var(--ink); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(300px, 0.9fr) minmax(320px, 1.15fr); gap: 14px; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.panel > header { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+.panel > header h2 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin: 0; }
+.panel > header .aside { margin-left: auto; display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--muted); }
+.body { padding: 12px 14px; }
+@media (max-width: 1100px) { .grid { grid-template-columns: 1fr 1fr; } .grid .account { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .stats { margin-left: 0; } }
+
+.ladder { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.lrow, .lhead { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 2px 14px; position: relative; }
+.lhead { color: var(--muted); font-family: var(--font-body); font-size: 11px; padding-top: 8px; padding-bottom: 6px; }
+.lhead span:not(:first-child), .lrow span:not(:first-child) { text-align: right; }
+.lrow { cursor: pointer; border: 0; background: none; width: 100%; text-align: left; }
+.lrow:hover { background: var(--panel-2); }
+.lrow .bar { position: absolute; inset: 1px 0 1px auto; z-index: 0; }
+.lrow span { position: relative; z-index: 1; }
+.lrow.ask .p { color: var(--ask); } .lrow.ask .bar { background: var(--ask-soft); }
+.lrow.bid .p { color: var(--bid); } .lrow.bid .bar { background: var(--bid-soft); }
+.queue { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; padding-bottom: 3px; }
+.chip { font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); }
+.mid { display: flex; align-items: baseline; gap: 12px; padding: 8px 14px; border-block: 1px solid var(--line); margin-block: 4px; }
+.mid .last { font-size: 19px; font-weight: 600; }
+.mid .sp { font-size: 11.5px; color: var(--muted); margin-left: auto; }
+.empty { padding: 10px 14px; color: var(--muted); font-family: var(--font-body); font-size: 12.5px; }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: transparent; padding: 7px; border-radius: 6px; font-weight: 600; }
+.seg button[aria-pressed="true"].buy { background: var(--bid); color: #fff; }
+.seg button[aria-pressed="true"].sell { background: var(--ask); color: #fff; }
+.tabs { display: flex; gap: 16px; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: none; padding: 8px 0; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.ticket { display: grid; gap: 12px; }
+.field { display: grid; gap: 4px; }
+.field label, .field .lbl { font-size: 11.5px; color: var(--muted); }
+.input { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.input:focus-within { border-color: var(--accent); }
+.input input, .input select { flex: 1; min-width: 0; border: 0; background: transparent; padding: 8px 10px; font-family: var(--font-mono); outline: none; }
+.input .unit { padding: 0 10px; color: var(--muted); font-size: 12px; }
+.input input:disabled { color: var(--muted); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hint { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.submit { border: 0; border-radius: 8px; padding: 11px; font-weight: 600; font-size: 15px; color: #fff; }
+.submit.buy { background: var(--bid); } .submit.sell { background: var(--ask); }
+.submit:hover { filter: brightness(1.06); }
+.toggle { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+details.rules { border-top: 1px solid var(--line); padding-top: 10px; }
+details.rules summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
+.rules dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; margin: 8px 0 0; font-size: 12px; }
+.rules dt { color: var(--muted); font-family: var(--font-mono); }
+.rules dd { margin: 0; font-family: var(--font-mono); text-align: right; }
+
+.resp { border-top: 1px solid var(--line); }
+.resp .status { display: inline-flex; font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 5px; }
+.st-ok { background: var(--bid-soft); color: var(--bid); }
+.st-err { background: var(--ask-soft); color: var(--ask); }
+.st-warn { background: var(--warn-soft); color: var(--warn); }
+pre.json { margin: 0; padding: 10px 12px; background: var(--code-bg); border-radius: 8px; font-family: var(--font-mono);
+  font-size: 11.5px; line-height: 1.5; overflow-x: auto; max-height: 260px; white-space: pre; }
+
+.tablewrap { overflow-x: auto; max-height: 300px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th { text-align: left; font-weight: 500; font-size: 11px; color: var(--muted); padding: 6px 7px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid var(--line); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+td.r, th.r { text-align: right; }
+.x { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 2px 8px; font-family: var(--font-body); font-size: 12px; }
+.x:hover { border-color: var(--ask); color: var(--ask); }
+.trades { max-height: 260px; overflow-y: auto; font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.trow { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 2px 14px; }
+.trow span:not(:first-child) { text-align: right; } .trow .t { color: var(--muted); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 12px; }
+.filters label { display: flex; gap: 5px; align-items: center; font-size: 12px; }
+.events { max-height: 340px; overflow: auto; font-family: var(--font-mono); font-size: 11.5px; }
+.ev { display: grid; grid-template-columns: 128px 1fr; gap: 10px; padding: 4px 14px; border-bottom: 1px solid var(--line); }
+.ev .tag { font-weight: 600; }
+.ev .tag.executionReport { color: var(--accent); } .ev .tag.trade { color: var(--bid); } .ev .tag.depthUpdate { color: var(--muted); } .ev .tag.error { color: var(--ask); }
+.ev code { white-space: pre-wrap; word-break: break-all; min-width: 0; }
+@media (max-width: 560px) { .ev { grid-template-columns: 1fr; gap: 2px; } }
+@media (prefers-reduced-motion: no-preference) { .flash { animation: flash 0.7s ease-out; } }
+@keyframes flash { from { background: var(--warn-soft); } to { background: transparent; } }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+        <rect x="3" y="4" width="14" height="4" rx="2" fill="var(--ask)"/>
+        <rect x="3" y="10" width="9" height="4" rx="2" fill="var(--ask)" opacity="0.6"/>
+        <rect x="11" y="15" width="14" height="4" rx="2" fill="var(--bid)"/>
+        <rect x="16" y="21" width="9" height="4" rx="2" fill="var(--bid)" opacity="0.6"/>
+      </svg>
+      <h1>Orderbook Lab</h1>
+      <span class="pair">BTC / USDT</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="k">Last price</span><span class="v big" id="s-last">–</span></div>
+      <div class="stat"><span class="k">Best bid</span><span class="v up" id="s-bid">–</span></div>
+      <div class="stat"><span class="k">Best ask</span><span class="v down" id="s-ask">–</span></div>
+      <div class="stat"><span class="k">Spread</span><span class="v" id="s-spread">–</span></div>
+      <div class="stat"><span class="k">lastUpdateId</span><span class="v" id="s-uid">0</span></div>
+      <div class="stat"><span class="k">Order pool</span><span class="v" id="s-pool">0 / 0</span></div>
+      <div class="stat"><span class="k">Level pool</span><span class="v" id="s-lpool">0 / 0</span></div>
+    </div>
+  </div>
+
+  <div class="scenarios">
+    <span class="label">Scenarios</span>
+    <button class="btn" id="sc-seed">Seed sample book</button>
+    <button class="btn" id="sc-slide">Replay Workshop 3 slide</button>
+    <button class="btn" id="sc-flow">Random flow ×20</button>
+    <button class="btn" id="sc-reset">Empty book</button>
+    <span class="caption" id="caption">Sample book loaded: Maker bot and Carol are quoting around 67,250. Click a price to trade against it.</span>
+  </div>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="h-book">
+      <header>
+        <h2 id="h-book">Order book</h2>
+        <div class="aside">
+          <label class="toggle"><input type="checkbox" id="show-queue"> Show queue</label>
+          <select id="depth" aria-label="Levels shown" class="btn" style="padding:3px 6px">
+            <option value="8">8</option><option value="14" selected>14</option><option value="25">25</option>
+          </select>
+        </div>
+      </header>
+      <div class="ladder" id="ladder"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-ticket">
+      <header><h2 id="h-ticket">Place order</h2>
+        <div class="aside"><label for="user">Account</label>
+          <select id="user" class="btn" style="padding:3px 6px"></select></div>
+      </header>
+      <div class="body ticket">
+        <div class="seg" role="group" aria-label="Side">
+          <button class="buy" id="side-buy" aria-pressed="true">Buy</button>
+          <button class="sell" id="side-sell" aria-pressed="false">Sell</button>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Order type">
+          <button role="tab" id="t-LIMIT" aria-selected="true">Limit</button>
+          <button role="tab" id="t-MARKET" aria-selected="false">Market</button>
+          <button role="tab" id="t-LIMIT_MAKER" aria-selected="false">Limit maker</button>
+        </div>
+        <div class="field">
+          <label for="price">Price</label>
+          <div class="input"><input id="price" inputmode="decimal" autocomplete="off"><span class="unit">USDT</span></div>
+        </div>
+        <div class="field" id="f-qty">
+          <label for="qty" id="qty-label">Amount</label>
+          <div class="input"><input id="qty" inputmode="decimal" autocomplete="off" value="0.05"><span class="unit" id="qty-unit">BTC</span></div>
+          <label class="toggle" id="quote-toggle" hidden><input type="checkbox" id="by-quote"> Spend a USDT total (quoteOrderQty)</label>
+        </div>
+        <div class="row2">
+          <div class="field" id="f-tif"><label for="tif">Time in force</label>
+            <div class="input"><select id="tif"><option>GTC</option><option>IOC</option><option>FOK</option></select></div></div>
+          <div class="field"><label for="stp">Self-trade prevention</label>
+            <div class="input"><select id="stp">
+              <option value="DEFAULT">Symbol default</option><option>NONE</option><option>EXPIRE_TAKER</option><option>EXPIRE_MAKER</option><option>EXPIRE_BOTH</option>
+            </select></div></div>
+        </div>
+        <div class="field"><label for="cid">Client order ID (optional)</label>
+          <div class="input"><input id="cid" autocomplete="off" placeholder="auto-generated"></div></div>
+        <div class="hint"><span id="est">Total ≈ –</span><span id="avail"></span></div>
+        <button class="submit buy" id="submit">Buy BTC</button>
+        <details class="rules">
+          <summary>Symbol rules (exchangeInfo filters)</summary>
+          <dl id="rules"></dl>
+        </details>
+      </div>
+      <div class="body resp">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <span style="font-size:12px;color:var(--muted)">Response</span>
+          <span class="status" id="resp-status" hidden></span>
+        </div>
+        <pre class="json" id="resp">Place an order to see the API response.</pre>
+      </div>
+    </section>
+
+    <section class="panel account" aria-labelledby="h-open">
+      <header><h2 id="h-open">Open orders</h2>
+        <div class="aside"><label class="toggle"><input type="checkbox" id="mine-only"> This account only</label></div>
+      </header>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>ID</th><th>Account</th><th>Side</th><th class="r">Price</th><th class="r">Amount</th><th class="r">Filled</th><th></th></tr></thead>
+          <tbody id="open"></tbody>
+        </table>
+      </div>
+      <header style="border-top:1px solid var(--line)"><h2>Market trades</h2><div class="aside" id="trade-count"></div></header>
+      <div class="lhead" style="grid-template-columns:1fr 1fr 1fr"><span>Time</span><span>Price (USDT)</span><span>Amount (BTC)</span></div>
+      <div class="trades" id="trades"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="h-ev">
+    <header><h2 id="h-ev">Event stream</h2>
+      <div class="aside filters">
+        <label><input type="checkbox" id="f-exec" checked> executionReport</label>
+        <label><input type="checkbox" id="f-trade" checked> trade</label>
+        <label><input type="checkbox" id="f-depth"> depthUpdate</label>
+        <button class="btn" id="clear-ev" style="padding:2px 8px">Clear</button>
+      </div>
+    </header>
+    <div class="events" id="events"></div>
+  </section>
+</div>
+
+<script>
+"use strict";
+const ONE = 100000000n;
+function parseDec(text) {
+  const s = String(text).trim();
+  if (s === "") return { value: 0n };
+  if (!/^\d*(\.\d*)?$/.test(s) || s === ".") return { error: "illegal" };
+  const [w, f = ""] = s.split(".");
+  if (f.replace(/0+$/, "").length > 8) return { error: "precision" };
+  return { value: BigInt(w || "0") * ONE + BigInt((f + "00000000").slice(0, 8)) };
+}
+const d = (s) => parseDec(s).value;
+function fmt(v, places = 8) {
+  const neg = v < 0n, a = neg ? -v : v;
+  const whole = (a / ONE).toString();
+  if (!places) return (neg ? "-" : "") + whole;
+  return (neg ? "-" : "") + whole + "." + (a % ONE).toString().padStart(8, "0").slice(0, places);
+}
+function group(str) { const [w, f] = str.split("."); return w.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (f !== undefined ? "." + f : ""); }
+const notional = (p, q) => (p * q) / ONE;
+const qtyForQuote = (quote, p) => (quote * ONE) / p;
+function decimalsOf(step) { let n = 8; while (n > 0 && step % 10n === 0n) { step /= 10n; n--; } return n; }
+
+const INFO = {
+  symbol: "BTCUSDT", base: "BTC", quote: "USDT",
+  minPrice: d("0.01"), maxPrice: d("1000000"), tickSize: d("0.01"),
+  minQty: d("0.00001"), maxQty: d("9000"), stepSize: d("0.00001"),
+  marketMinQty: 0n, marketMaxQty: d("100"), marketStepSize: d("0.00001"),
+  minNotional: d("5"), maxNotional: d("9000000"), applyMinToMarket: true, applyMaxToMarket: false,
+  maxNumOrders: 200, defaultStp: "EXPIRE_MAKER",
+};
+const PP = decimalsOf(INFO.tickSize), QP = decimalsOf(INFO.stepSize);
+
+class OrderBook {
+  constructor(info, maxOrders, maxLevels, listener) {
+    Object.assign(this, { info, maxOrders, maxLevels, ls: listener });
+    this.bids = []; this.asks = [];
+    this.byId = new Map(); this.byClient = new Map(); this.openPerUser = new Map();
+    this.nextOrderId = 1; this.nextTradeId = 1; this.updateId = 0; this.lastPrice = 0n; this.orderCount = 0;
+  }
+  levels(side) { return side === "BUY" ? this.bids : this.asks; }
+  opposite(side) { return side === "BUY" ? this.asks : this.bids; }
+  levelCount() { return this.bids.length + this.asks.length; }
+  insertPos(side, price) {
+    const L = this.levels(side); let lo = 0, hi = L.length;
+    while (lo < hi) { const m = (lo + hi) >> 1, p = L[m].price; if (side === "BUY" ? p > price : p < price) hi = m; else lo = m + 1; }
+    return lo;
+  }
+  levelAt(side, price) { const pos = this.insertPos(side, price), L = this.levels(side); return pos > 0 && L[pos - 1].price === price ? L[pos - 1] : null; }
+  static leaves(o) { return o.origQty - o.executedQty; }
+  static byQuote(o) { return o.type === "MARKET" && o.origQuoteQty > 0n; }
+  static crosses(side, limit, lp) { return side === "BUY" ? lp <= limit : lp >= limit; }
+  static selfTrade(t, m) { return t.stp !== "NONE" && t.userId === m.userId; }
+  static clientKey(u, c) { return u + "|" + c; }
+  reject(code, msg, o) { return { code, msg, order: { ...o, status: "REJECTED" } }; }
+
+  lotOk(q, mn, mx, step) { return !((mn && q < mn) || (mx && q > mx) || (step && q % step !== 0n)); }
+  notionalOk(v, checkMin, checkMax) {
+    if (checkMin && this.info.minNotional && v < this.info.minNotional) return false;
+    if (checkMax && this.info.maxNotional && v > this.info.maxNotional) return false;
+    return true;
+  }
+  validate(o) {
+    const I = this.info;
+    if (o.symbol !== I.symbol) return this.reject(-1121, "Invalid symbol.", o);
+    if (!/^[.A-Z:/a-z0-9_-]{0,36}$/.test(o.clientOrderId))
+      return this.reject(-1100, "Illegal characters found in parameter 'newClientOrderId'; legal range is '^[\\.A-Z\\:/a-z0-9_-]{1,36}$'.", o);
+    if (o.type === "MARKET") {
+      if (o.origQty <= 0n && o.origQuoteQty <= 0n) return this.reject(-1102, "Param 'quantity' or 'quoteOrderQty' must be sent, but both were empty/null!", o);
+      if (o.origQty > 0n && o.origQuoteQty > 0n) return this.reject(-1106, "Parameter 'quoteOrderQty' sent when not required.", o);
+      if (o.origQty > 0n) {
+        if (!this.lotOk(o.origQty, I.minQty, I.maxQty, I.stepSize)) return this.reject(-1013, "Filter failure: LOT_SIZE", o);
+        if (!this.lotOk(o.origQty, I.marketMinQty, I.marketMaxQty, I.marketStepSize)) return this.reject(-1013, "Filter failure: MARKET_LOT_SIZE", o);
+        if (this.lastPrice && !this.notionalOk(notional(this.lastPrice, o.origQty), I.applyMinToMarket, I.applyMaxToMarket))
+          return this.reject(-1013, "Filter failure: NOTIONAL", o);
+      } else if (!this.notionalOk(o.origQuoteQty, I.applyMinToMarket, I.applyMaxToMarket)) {
+        return this.reject(-1013, "Filter failure: NOTIONAL", o);
+      }
+      return null;
+    }
+    if (o.price <= 0n) return this.reject(-1102, "Mandatory parameter 'price' was not sent, was empty/null, or malformed.", o);
+    if (o.origQty <= 0n) return this.reject(-1102, "Mandatory parameter 'quantity' was not sent, was empty/null, or malformed.", o);
+    if ((I.minPrice && o.price < I.minPrice) || (I.maxPrice && o.price > I.maxPrice) || (I.tickSize && o.price % I.tickSize !== 0n))
+      return this.reject(-1013, "Filter failure: PRICE_FILTER", o);
+    if (!this.lotOk(o.origQty, I.minQty, I.maxQty, I.stepSize)) return this.reject(-1013, "Filter failure: LOT_SIZE", o);
+    if (!this.notionalOk(notional(o.price, o.origQty), true, true)) return this.reject(-1013, "Filter failure: NOTIONAL", o);
+    return null;
+  }
+
+  add(req) {
+    const o = { ...req, executedQty: 0n, cumQuoteQty: 0n, status: "NEW", orderId: 0, transactTime: 0, workingTime: 0 };
+    if (o.stp === "DEFAULT") o.stp = this.info.defaultStp;
+    const err = this.validate(o);
+    if (err) return err;
+    const mayRest = o.type === "LIMIT_MAKER" || (o.type === "LIMIT" && o.tif === "GTC");
+    if (o.type === "LIMIT_MAKER" && this.wouldTake(o)) return this.reject(-2010, "Order would immediately match and take.", o);
+    if (mayRest) {
+      const open = this.openPerUser.get(o.userId) || 0;
+      if (this.info.maxNumOrders && open >= this.info.maxNumOrders) return this.reject(-1013, "Filter failure: MAX_NUM_ORDERS", o);
+      if (this.orderCount >= this.maxOrders || (this.levelCount() >= this.maxLevels && !this.levelAt(o.side, o.price)))
+        return this.reject(-1008, "Server is currently overloaded with other requests. Please try again in a few minutes.", o);
+    }
+    if (o.clientOrderId && this.byClient.has(OrderBook.clientKey(o.userId, o.clientOrderId))) return this.reject(-2010, "Duplicate order sent.", o);
+    o.orderId = this.nextOrderId++;
+    if (!o.clientOrderId) o.clientOrderId = genClientId();
+    o.transactTime = o.workingTime = Date.now();
+    this.report("NEW", o);
+
+    if (o.type === "LIMIT" && o.tif === "FOK" && !this.canFillCompletely(o)) {
+      o.status = "EXPIRED"; this.report("EXPIRED", o); return { code: 0, order: o };
+    }
+    const stoppedEarly = this.match(o);
+    if (o.status === "FILLED" || o.status === "EXPIRED_IN_MATCH") return { code: 0, order: o };
+    if (OrderBook.byQuote(o)) {
+      o.status = stoppedEarly && o.executedQty > 0n ? "FILLED" : "EXPIRED";
+      if (o.status === "EXPIRED") this.report("EXPIRED", o);
+      return { code: 0, order: o };
+    }
+    if (mayRest) { this.rest(o); return { code: 0, order: o }; }
+    o.status = "EXPIRED"; this.report("EXPIRED", o);
+    return { code: 0, order: o };
+  }
+
+  cancel(orderId, userId = null) {
+    const node = this.byId.get(orderId);
+    if (!node || (userId !== null && node.order.userId !== userId)) return { code: -2011, msg: "Unknown order sent." };
+    return this.cancelNode(node);
+  }
+
+  wouldTake(o) { const opp = this.opposite(o.side); return opp.length > 0 && OrderBook.crosses(o.side, o.price, opp[opp.length - 1].price); }
+
+  canFillCompletely(o) {
+    const opp = this.opposite(o.side); let available = 0n;
+    for (let i = opp.length - 1; i >= 0; i--) {
+      if (!OrderBook.crosses(o.side, o.price, opp[i].price)) break;
+      for (let n = opp[i].head; n; n = n.next) {
+        if (OrderBook.selfTrade(o, n.order)) { if (o.stp === "EXPIRE_MAKER") continue; return false; }
+        available += OrderBook.leaves(n.order);
+        if (available >= o.origQty) return true;
+      }
+    }
+    return false;
+  }
+
+  fillQty(t, m, price) {
+    if (!OrderBook.byQuote(t)) { const a = OrderBook.leaves(t), b = OrderBook.leaves(m); return a < b ? a : b; }
+    let q = qtyForQuote(t.origQuoteQty - t.cumQuoteQty, price);
+    const step = this.info.marketStepSize || this.info.stepSize;
+    if (step) q -= q % step;
+    const b = OrderBook.leaves(m); return q < b ? q : b;
+  }
+
+  match(t) {
+    const opp = this.opposite(t.side);
+    while (opp.length) {
+      const level = opp[opp.length - 1];
+      if (t.type !== "MARKET" && !OrderBook.crosses(t.side, t.price, level.price)) return false;
+      let touched = false, done = false;
+      for (let n = level.head; n;) {
+        const next = n.next;
+        if (OrderBook.selfTrade(t, n.order)) {
+          if (t.stp === "EXPIRE_MAKER" || t.stp === "EXPIRE_BOTH") {
+            n.order.status = "EXPIRED_IN_MATCH"; this.report("TRADE_PREVENTION", n.order);
+            level.total -= OrderBook.leaves(n.order); this.removeNode(n); touched = true;
+          }
+          if (t.stp === "EXPIRE_TAKER" || t.stp === "EXPIRE_BOTH") {
+            t.status = "EXPIRED_IN_MATCH"; this.report("TRADE_PREVENTION", t); done = true; break;
+          }
+          n = next; continue;
+        }
+        const qty = this.fillQty(t, n.order, level.price);
+        if (qty <= 0n) { done = true; break; }
+        this.execute(t, n, qty); touched = true;
+        if (!OrderBook.byQuote(t) && OrderBook.leaves(t) === 0n) { done = true; break; }
+        n = next;
+      }
+      if (touched) this.publish(level);
+      if (!level.head) opp.pop();
+      if (done) return true;
+    }
+    return false;
+  }
+
+  execute(t, node, qty) {
+    const m = node.order, level = node.level, price = level.price, quote = notional(price, qty);
+    const tradeId = this.nextTradeId++, now = Date.now();
+    m.executedQty += qty; m.cumQuoteQty += quote; m.status = OrderBook.leaves(m) === 0n ? "FILLED" : "PARTIALLY_FILLED"; m.workingTime = now;
+    t.executedQty += qty; t.cumQuoteQty += quote;
+    if (OrderBook.byQuote(t)) t.origQty = t.executedQty;
+    t.status = !OrderBook.byQuote(t) && OrderBook.leaves(t) === 0n ? "FILLED" : "PARTIALLY_FILLED";
+    level.total -= qty; this.lastPrice = price;
+    const buyerIsMaker = m.side === "BUY";
+    this.ls.onTrade({ e: "trade", E: now, s: this.info.symbol, t: tradeId, p: fmt(price), q: fmt(qty), T: now, m: buyerIsMaker, M: true,
+      _buyer: buyerIsMaker ? m.orderId : t.orderId, _seller: buyerIsMaker ? t.orderId : m.orderId, _price: price, _qty: qty });
+    this.ls.onExec(execReport("TRADE", t, qty, price, tradeId, false, now));
+    this.ls.onExec(execReport("TRADE", m, qty, price, tradeId, true, now));
+    if (OrderBook.leaves(m) === 0n) this.removeNode(node);
+  }
+
+  rest(o) {
+    const L = this.levels(o.side), pos = this.insertPos(o.side, o.price);
+    let level = pos > 0 && L[pos - 1].price === o.price ? L[pos - 1] : null;
+    if (!level) { level = { price: o.price, side: o.side, total: 0n, head: null, tail: null }; L.splice(pos, 0, level); }
+    const node = { order: { ...o }, prev: level.tail, next: null, level, key: OrderBook.clientKey(o.userId, o.clientOrderId) };
+    if (level.tail) level.tail.next = node; else level.head = node;
+    level.tail = node; level.total += OrderBook.leaves(o);
+    this.byId.set(o.orderId, node); this.byClient.set(node.key, node);
+    this.openPerUser.set(o.userId, (this.openPerUser.get(o.userId) || 0) + 1); this.orderCount++;
+    this.publish(level);
+  }
+
+  cancelNode(node) {
+    const level = node.level;
+    node.order.status = "CANCELED"; node.order.workingTime = Date.now();
+    const snap = { ...node.order };
+    this.report("CANCELED", snap);
+    level.total -= OrderBook.leaves(snap);
+    this.removeNode(node); this.publish(level);
+    if (!level.head) { const L = this.levels(level.side); L.splice(this.insertPos(level.side, level.price) - 1, 1); }
+    return { code: 0, order: snap };
+  }
+
+  removeNode(node) {
+    const level = node.level;
+    if (node.prev) node.prev.next = node.next; else level.head = node.next;
+    if (node.next) node.next.prev = node.prev; else level.tail = node.prev;
+    this.byId.delete(node.order.orderId); this.byClient.delete(node.key);
+    const c = (this.openPerUser.get(node.order.userId) || 1) - 1;
+    if (c) this.openPerUser.set(node.order.userId, c); else this.openPerUser.delete(node.order.userId);
+    this.orderCount--;
+  }
+
+  publish(level) {
+    const lv = [[fmt(level.price), fmt(level.total)]], now = Date.now();
+    this.ls.onDepth({ e: "depthUpdate", E: now, s: this.info.symbol, U: ++this.updateId, u: this.updateId,
+      b: level.side === "BUY" ? lv : [], a: level.side === "SELL" ? lv : [] });
+  }
+  report(type, o) { this.ls.onExec(execReport(type, o, 0n, 0n, 0, false, Date.now())); }
+
+  depth(limit = 100) {
+    const side = (L) => L.slice(-limit).reverse().map((l) => [fmt(l.price), fmt(l.total)]);
+    return { lastUpdateId: this.updateId, bids: side(this.bids), asks: side(this.asks) };
+  }
+}
+
+function genClientId() {
+  const a = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const r = new Uint8Array(22); crypto.getRandomValues(r);
+  return Array.from(r, (x) => a[x % 62]).join("");
+}
+function orderJson(o) {
+  return { symbol: o.symbol, orderId: o.orderId, orderListId: -1, clientOrderId: o.clientOrderId, transactTime: o.transactTime,
+    price: fmt(o.price), origQty: fmt(o.origQty), executedQty: fmt(o.executedQty), origQuoteOrderQty: fmt(o.origQuoteQty),
+    cummulativeQuoteQty: fmt(o.cumQuoteQty), status: o.status, timeInForce: o.tif, type: o.type, side: o.side,
+    workingTime: o.workingTime, selfTradePreventionMode: o.stp };
+}
+function execReport(x, o, lastQty, lastPrice, tradeId, isMaker, now) {
+  return { e: "executionReport", E: now, s: o.symbol, c: o.clientOrderId, S: o.side, o: o.type, f: o.tif, q: fmt(o.origQty),
+    p: fmt(o.price), x, X: o.status, i: o.orderId, l: fmt(lastQty), z: fmt(o.executedQty), L: fmt(lastPrice), T: now,
+    t: x === "TRADE" ? tradeId : -1, m: isMaker, Z: fmt(o.cumQuoteQty), Q: fmt(o.origQuoteQty), V: o.stp };
+}
+
+const USERS = [{ id: 1, name: "Alice" }, { id: 2, name: "Bob" }, { id: 3, name: "Maker bot" }, { id: 4, name: "Carol" }];
+const userName = (id) => (USERS.find((u) => u.id === id) || { name: "#" + id }).name;
+const MAX_ORDERS = 500, MAX_LEVELS = 200;
+const $ = (id) => document.getElementById(id);
+let book, trades = [], events = [], prevLast = 0n, lastDir = "";
+const ui = { side: "BUY", type: "LIMIT" };
+
+const listener = {
+  onExec(r) { pushEvent("executionReport", r); },
+  onTrade(t) { trades.unshift(t); if (trades.length > 200) trades.pop(); pushEvent("trade", t); },
+  onDepth(dpt) { pushEvent("depthUpdate", dpt); },
+};
+function pushEvent(kind, obj) { events.unshift({ kind, obj }); if (events.length > 400) events.pop(); }
+function newBook() { book = new OrderBook(INFO, MAX_ORDERS, MAX_LEVELS, listener); trades = []; events = []; prevLast = 0n; lastDir = ""; }
+
+const json = (o) => JSON.stringify(o, (k, v) => (k.startsWith("_") ? undefined : typeof v === "bigint" ? v.toString() : v));
+
+function render() {
+  const bb = book.bids.at(-1), ba = book.asks.at(-1);
+  if (book.lastPrice !== prevLast && prevLast) lastDir = book.lastPrice > prevLast ? "up" : "down";
+  prevLast = book.lastPrice;
+  const lastTxt = book.lastPrice ? group(fmt(book.lastPrice, PP)) : "–";
+  $("s-last").textContent = lastTxt; $("s-last").className = "v big " + lastDir;
+  $("s-bid").textContent = bb ? group(fmt(bb.price, PP)) : "–";
+  $("s-ask").textContent = ba ? group(fmt(ba.price, PP)) : "–";
+  $("s-spread").textContent = bb && ba ? fmt(ba.price - bb.price, PP) : "–";
+  $("s-uid").textContent = book.updateId;
+  $("s-pool").textContent = `${book.orderCount} / ${MAX_ORDERS}`;
+  $("s-lpool").textContent = `${book.levelCount()} / ${MAX_LEVELS}`;
+  renderLadder(); renderOpen(); renderTrades(); renderEvents(); updateEstimate();
+}
+
+function renderLadder() {
+  const n = +$("depth").value, showQ = $("show-queue").checked;
+  const asks = book.asks.slice(-n), bids = book.bids.slice(-n).reverse();
+  const maxT = [...asks, ...bids].reduce((m, l) => (l.total > m ? l.total : m), 1n);
+  const row = (l, cls) => {
+    const w = Number((l.total * 1000n) / maxT) / 10;
+    let q = "";
+    if (showQ) {
+      q = '<div class="queue">';
+      for (let x = l.head; x; x = x.next) q += `<span class="chip">#${x.order.orderId} ${esc(userName(x.order.userId))} ${fmt(OrderBook.leaves(x.order), QP)}</span>`;
+      q += "</div>";
+    }
+    let count = 0; for (let x = l.head; x; x = x.next) count++;
+    return `<button class="lrow ${cls}" data-price="${fmt(l.price, PP)}" title="${count} order${count > 1 ? "s" : ""} at this price — click to use price">
+      <span class="bar" style="width:${w}%"></span><span class="p">${group(fmt(l.price, PP))}</span><span>${fmt(l.total, QP)}</span>
+      <span>${group(fmt(notional(l.price, l.total), PP))}</span>${q}</button>`;
+  };
+  let h = `<div class="lhead"><span>Price (USDT)</span><span>Amount (BTC)</span><span>Total (USDT)</span></div>`;
+  h += asks.length ? asks.map((l) => row(l, "ask")).join("") : `<div class="empty">No asks</div>`;
+  const bb = book.bids.at(-1), ba = book.asks.at(-1);
+  h += `<div class="mid"><span class="last ${lastDir}">${book.lastPrice ? group(fmt(book.lastPrice, PP)) : "–"}</span>
+        <span style="font-size:11.5px;color:var(--muted)">last trade</span>
+        <span class="sp">spread ${bb && ba ? fmt(ba.price - bb.price, PP) : "–"}</span></div>`;
+  h += bids.length ? bids.map((l) => row(l, "bid")).join("") : `<div class="empty">No bids</div>`;
+  $("ladder").innerHTML = h;
+}
+
+function renderOpen() {
+  const mine = $("mine-only").checked, me = +$("user").value;
+  const rows = [...book.byId.values()].map((nd) => nd.order).filter((o) => !mine || o.userId === me).sort((a, b) => b.orderId - a.orderId);
+  $("open").innerHTML = rows.length ? rows.map((o) => `<tr>
+    <td>${o.orderId}</td><td style="font-family:var(--font-body)">${esc(userName(o.userId))}</td>
+    <td class="${o.side === "BUY" ? "up" : "down"}" title="${o.type}">${o.side}${o.type === "LIMIT_MAKER" ? " · maker" : ""}</td>
+    <td class="r">${group(fmt(o.price, PP))}</td><td class="r">${fmt(o.origQty, QP)}</td>
+    <td class="r" title="${o.status}">${o.executedQty ? fmt(o.executedQty, QP) : "–"}</td><td class="r"><button class="x" data-cancel="${o.orderId}" data-user="${o.userId}">Cancel</button></td></tr>`).join("")
+    : `<tr><td colspan="7" style="font-family:var(--font-body);color:var(--muted)">No open orders${mine ? " for this account" : ""}.</td></tr>`;
+}
+
+function renderTrades() {
+  $("trade-count").textContent = trades.length ? `${trades.length} trades` : "";
+  $("trades").innerHTML = trades.length ? trades.slice(0, 80).map((t) => {
+    const cls = t.m ? "down" : "up";
+    return `<div class="trow"><span class="t">${new Date(t.T).toLocaleTimeString([], { hour12: false })}</span>
+      <span class="${cls}">${group(fmt(t._price, PP))}</span><span>${fmt(t._qty, QP)}</span></div>`;
+  }).join("") : `<div class="empty">No trades yet.</div>`;
+}
+
+function renderEvents() {
+  const show = { executionReport: $("f-exec").checked, trade: $("f-trade").checked, depthUpdate: $("f-depth").checked, error: true };
+  const list = events.filter((e) => show[e.kind]).slice(0, 150);
+  $("events").innerHTML = list.length ? list.map((e) => `<div class="ev"><span class="tag ${e.kind}">${e.kind === "executionReport" ? "executionReport · " + e.obj.x : e.kind}</span><code>${esc(json(e.obj))}</code></div>`).join("")
+    : `<div class="empty">Events from the matching engine appear here: executionReport for each account, trade and depthUpdate for market data.</div>`;
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function showResponse(res) {
+  const st = $("resp-status"); st.hidden = false;
+  if (res.code) {
+    st.textContent = "ERROR " + res.code; st.className = "status st-err";
+    $("resp").textContent = JSON.stringify({ code: res.code, msg: res.msg }, null, 2);
+    pushEvent("error", { code: res.code, msg: res.msg });
+  } else {
+    const s = res.order.status;
+    st.textContent = s; st.className = "status " + (s === "FILLED" || s === "NEW" || s === "PARTIALLY_FILLED" ? "st-ok" : s === "CANCELED" ? "st-warn" : "st-warn");
+    $("resp").textContent = JSON.stringify(orderJson(res.order), null, 2);
+  }
+  $("resp").classList.remove("flash"); void $("resp").offsetWidth; $("resp").classList.add("flash");
+}
+
+function setSide(side) {
+  ui.side = side;
+  $("side-buy").setAttribute("aria-pressed", side === "BUY"); $("side-sell").setAttribute("aria-pressed", side === "SELL");
+  $("submit").className = "submit " + (side === "BUY" ? "buy" : "sell");
+  $("submit").textContent = (side === "BUY" ? "Buy" : "Sell") + " BTC";
+  updateEstimate();
+}
+function setType(type) {
+  ui.type = type;
+  for (const t of ["LIMIT", "MARKET", "LIMIT_MAKER"]) $("t-" + t).setAttribute("aria-selected", t === type);
+  const mkt = type === "MARKET";
+  $("price").disabled = mkt; if (mkt) $("price").value = "Market";
+  else if ($("price").value === "Market") $("price").value = defaultPrice();
+  $("f-tif").hidden = type !== "LIMIT";
+  $("quote-toggle").hidden = !mkt;
+  if (!mkt) $("by-quote").checked = false;
+  syncQtyUnit(); updateEstimate();
+}
+function syncQtyUnit() {
+  const q = $("by-quote").checked;
+  $("qty-unit").textContent = q ? "USDT" : "BTC"; $("qty-label").textContent = q ? "Total to spend" : "Amount";
+}
+function defaultPrice() {
+  const l = ui.side === "BUY" ? book.asks.at(-1) || book.bids.at(-1) : book.bids.at(-1) || book.asks.at(-1);
+  return l ? fmt(l.price, PP) : "67250.00";
+}
+function updateEstimate() {
+  const p = parseDec($("price").value).value, q = parseDec($("qty").value).value;
+  let txt = "Total ≈ –";
+  if (ui.type === "MARKET") {
+    if ($("by-quote").checked) txt = q && book.lastPrice ? `≈ ${fmt(qtyForQuote(q, book.lastPrice), QP)} BTC at last price` : "Total ≈ –";
+    else txt = q && book.lastPrice ? `Total ≈ ${group(fmt(notional(book.lastPrice, q), PP))} USDT at last price` : "Total ≈ –";
+  } else if (p && q) txt = `Total ${group(fmt(notional(p, q), PP))} USDT`;
+  $("est").textContent = txt;
+  const open = book.openPerUser.get(+$("user").value) || 0;
+  $("avail").textContent = `${open} / ${INFO.maxNumOrders} open orders`;
+}
+
+function submitOrder() {
+  const user = +$("user").value, mkt = ui.type === "MARKET";
+  const fieldErr = (name) => showResponse({ code: -1100, msg: `Illegal characters found in parameter '${name}'; legal range is '^([0-9]{1,20})(\\.[0-9]{1,20})?$'.` });
+  const prec = () => showResponse({ code: -1111, msg: "Precision is over the maximum defined for this asset." });
+  const P = mkt ? { value: 0n } : parseDec($("price").value), Q = parseDec($("qty").value);
+  if (P.error === "illegal") return fieldErr("price"); if (Q.error === "illegal") return fieldErr("quantity");
+  if (P.error || Q.error) return prec();
+  const req = { symbol: INFO.symbol, userId: user, side: ui.side, type: ui.type, tif: ui.type === "LIMIT" ? $("tif").value : "GTC",
+    price: P.value, origQty: mkt && $("by-quote").checked ? 0n : Q.value, origQuoteQty: mkt && $("by-quote").checked ? Q.value : 0n,
+    stp: $("stp").value, clientOrderId: $("cid").value.trim() };
+  showResponse(book.add(req)); $("cid").value = ""; render();
+}
+
+function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
+function place(user, side, type, price, qty, extra = {}) {
+  return book.add({ symbol: INFO.symbol, userId: user, side, type, tif: "GTC", price: price ? d(price) : 0n, origQty: d(qty), origQuoteQty: 0n, stp: "DEFAULT", clientOrderId: "", ...extra });
+}
+function seedBook() {
+  newBook();
+  const r = rng(7);
+  const cents = (x) => (Math.round(x * 100) / 100).toFixed(2);
+  let a = 67250.01, b = 67250.0;
+  for (let i = 0; i < 18; i++) {
+    const qa = (0.002 + r() * 0.6).toFixed(5), qb = (0.002 + r() * 0.6).toFixed(5);
+    place(3, "SELL", "LIMIT", cents(a), qa); place(3, "BUY", "LIMIT", cents(b), qb);
+    if (r() < 0.45) place(4, "SELL", "LIMIT", cents(a), (0.001 + r() * 0.2).toFixed(5));
+    if (r() < 0.45) place(4, "BUY", "LIMIT", cents(b), (0.001 + r() * 0.2).toFixed(5));
+    a += 0.01 + Math.floor(r() * 60) / 100 * (i < 4 ? 0.3 : 1); b -= 0.01 + Math.floor(r() * 60) / 100 * (i < 4 ? 0.3 : 1);
+  }
+  place(1, "BUY", "MARKET", null, "0.012"); place(2, "SELL", "MARKET", null, "0.008");
+  $("price").value = ui.type === "MARKET" ? "Market" : defaultPrice();
+  $("caption").innerHTML = "Sample book loaded: <b>Maker bot</b> and <b>Carol</b> are quoting around 67,250. Click a price to trade against it.";
+  $("resp").textContent = "Place an order to see the API response."; $("resp-status").hidden = true;
+  render();
+}
+
+let replaying = false;
+async function replaySlide() {
+  if (replaying) return; replaying = true;
+  for (const b of document.querySelectorAll(".scenarios .btn")) b.disabled = true;
+  newBook(); $("show-queue").checked = true; render();
+  const steps = [
+    ["Start: Maker bot offers <b>8 @ 100.01</b> and bids <b>5 @ 100.00</b>.", () => { place(3, "SELL", "LIMIT", "100.01", "8"); return place(3, "BUY", "LIMIT", "100.00", "5"); }],
+    ["Carol adds a bid <b>7 @ 100.00</b>. It queues behind the 5 (time priority).", () => place(4, "BUY", "LIMIT", "100.00", "7")],
+    ["Bob adds an ask <b>3 @ 100.02</b>, a new level above.", () => place(2, "SELL", "LIMIT", "100.02", "3")],
+    ["Alice bids <b>10 @ 100.01</b>: fills 8 against the ask, 2 rest as the new best bid.", () => place(1, "BUY", "LIMIT", "100.01", "10")],
+    ["Bob sends a <b>market sell 10</b>: fills 2 @ 100.01, then 5 + 3 @ 100.00. 4 of Carol's 7 remain.", () => place(2, "SELL", "MARKET", null, "10")],
+  ];
+  for (const [text, fn] of steps) {
+    $("caption").innerHTML = text; showResponse(fn()); render();
+    await new Promise((r) => setTimeout(r, 1700));
+  }
+  $("caption").innerHTML = "Replay done. The book matches the last frame of the slide: <b>3 @ 100.02</b> ask, <b>4 @ 100.00</b> bid.";
+  for (const b of document.querySelectorAll(".scenarios .btn")) b.disabled = false;
+  replaying = false;
+}
+
+function randomFlow() {
+  const r = Math.random;
+  let placed = 0, filled = 0;
+  for (let i = 0; i < 20; i++) {
+    const user = [1, 2, 4][Math.floor(r() * 3)], side = r() < 0.5 ? "BUY" : "SELL";
+    const mid = book.lastPrice ? Number(fmt(book.lastPrice, 2)) : 67250;
+    const roll = r();
+    let res;
+    if (roll < 0.15 && book.orderCount) {
+      const ids = [...book.byId.keys()]; res = book.cancel(ids[Math.floor(r() * ids.length)]);
+    } else if (roll < 0.35) {
+      res = place(user, side, "MARKET", null, (0.0005 + r() * 0.05).toFixed(5));
+    } else {
+      const off = (r() * 3 - 0.8) * (side === "BUY" ? -1 : 1);
+      res = place(user, side, "LIMIT", (mid + off).toFixed(2), (0.0005 + r() * 0.15).toFixed(5), { tif: r() < 0.15 ? "IOC" : "GTC" });
+    }
+    if (res.code === 0) { placed++; if (res.order.status === "FILLED") filled++; }
+  }
+  $("caption").innerHTML = `Random flow: <b>${placed}</b> requests accepted, <b>${filled}</b> fully filled. Check the event stream for the details.`;
+  render();
+}
+
+$("user").innerHTML = USERS.map((u) => `<option value="${u.id}">${esc(u.name)} · #${u.id}</option>`).join("");
+$("rules").innerHTML = [
+  ["PRICE_FILTER tickSize", fmt(INFO.tickSize)], ["minPrice / maxPrice", `${fmt(INFO.minPrice, 2)} / ${fmt(INFO.maxPrice, 0)}`],
+  ["LOT_SIZE stepSize", fmt(INFO.stepSize)], ["minQty / maxQty", `${fmt(INFO.minQty, 5)} / ${fmt(INFO.maxQty, 0)}`],
+  ["MARKET_LOT_SIZE maxQty", fmt(INFO.marketMaxQty, 0)], ["NOTIONAL min / max", `${fmt(INFO.minNotional, 0)} / ${fmt(INFO.maxNotional, 0)}`],
+  ["applyMinToMarket", String(INFO.applyMinToMarket)], ["MAX_NUM_ORDERS", INFO.maxNumOrders], ["defaultSelfTradePreventionMode", INFO.defaultStp],
+].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+
+$("side-buy").onclick = () => setSide("BUY");
+$("side-sell").onclick = () => setSide("SELL");
+for (const t of ["LIMIT", "MARKET", "LIMIT_MAKER"]) $("t-" + t).onclick = () => setType(t);
+$("by-quote").onchange = () => { syncQtyUnit(); $("qty").value = $("by-quote").checked ? "100" : "0.05"; updateEstimate(); };
+$("price").oninput = $("qty").oninput = updateEstimate;
+$("user").onchange = () => { renderOpen(); updateEstimate(); };
+$("submit").onclick = submitOrder;
+$("ladder").onclick = (e) => {
+  const row = e.target.closest(".lrow"); if (!row) return;
+  if (ui.type === "MARKET") setType("LIMIT");
+  $("price").value = row.dataset.price; updateEstimate(); $("qty").focus();
+};
+$("open").onclick = (e) => {
+  const b = e.target.closest("[data-cancel]"); if (!b) return;
+  showResponse(book.cancel(+b.dataset.cancel, +b.dataset.user)); render();
+};
+for (const id of ["show-queue", "depth"]) $(id).onchange = renderLadder;
+$("mine-only").onchange = renderOpen;
+for (const id of ["f-exec", "f-trade", "f-depth"]) $(id).onchange = renderEvents;
+$("clear-ev").onclick = () => { events = []; renderEvents(); };
+$("sc-seed").onclick = seedBook;
+$("sc-slide").onclick = replaySlide;
+$("sc-flow").onclick = randomFlow;
+$("sc-reset").onclick = () => { newBook(); $("caption").textContent = "Empty book. Place the first order."; render(); };
+
+seedBook();
+setSide("BUY"); setType("LIMIT"); $("price").value = defaultPrice(); updateEstimate();
+</script>

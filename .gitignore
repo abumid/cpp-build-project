@@ -1,0 +1,7 @@
+tests
+tests_san
+bench_bin
+mem_pool_test
+mem_pool_test_san
+*.o
+.DS_Store

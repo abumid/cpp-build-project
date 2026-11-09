@@ -60,14 +60,37 @@ min-heap<(expire_at, id)>   ──►  TTL expiry
 
 ## Run
 
+### Bazel (as in the workshop)
+
+```bash
+bazel test //:order_book_test --test_output=errors
+bazel coverage //:order_book_test
+genhtml "$(bazel info output_path)/_coverage/_coverage_report.dat" -o coverage_html   # needs lcov
+```
+
+`MODULE.bazel` pulls GoogleTest 1.15.2 from the Bazel Central Registry, `.bazelversion` pins Bazel 7.4.1, and `.bazelrc` sets C++20 and limits coverage to `//:order_book`.
+On macOS with Apple Clang, set these before `bazel coverage`:
+
+```bash
+export BAZEL_USE_LLVM_NATIVE_COVERAGE=1 GCOV="$(xcrun -f llvm-profdata)" BAZEL_LLVM_COV="$(xcrun -f llvm-cov)"
+```
+
+### CMake (alternative)
+
 ```bash
 make test        # CMake build + GoogleTest
 make coverage    # gcovr summary (fails if lines < 80%) + build-coverage/coverage.html
 make clean
 ```
 
-Requirements: CMake 3.20+, git, and a C++20 compiler with `<format>` (GCC 13+ or Clang 17+). Coverage needs `gcovr` (`pip install gcovr`).
+Requirements: a C++20 compiler with `<format>` (GCC 13+ or Clang 17+); for CMake, also CMake 3.20+ and git; for coverage, `gcovr` (`pip install gcovr`).
 On macOS with Apple Clang, run `make coverage GCOV="xcrun llvm-cov gcov"`.
+
+### What coverage does not prove
+
+97.7% line coverage only shows which lines ran, not that every case is correct. These tests check behaviour directly:
+- The randomised test runs 50,000 orders and cancels and compares every trade, price and quantity with a simple `std::map` reference book.
+- Edge cases: an order whose remainder can't rest, compaction of empty levels, updates on a partly filled order, an expired order on either side, and self-trade with equal sizes.
 
 ![GoogleTest](../screenshots/07-workshop4-gtest.png)
 ![Coverage](../screenshots/08-workshop4-coverage.png)

@@ -1,0 +1,38 @@
+cc_library(
+    name = "order_books",
+    srcs = [
+        "book_types.cpp",
+        "heap_order_book.cpp",
+        "map_order_book.cpp",
+        "tick_order_book.cpp",
+    ],
+    hdrs = [
+        "book_types.h",
+        "heap_order_book.h",
+        "id_map.h",
+        "map_order_book.h",
+        "mem_pool.h",
+        "order.h",
+        "tick_order_book.h",
+        "workloads.h",
+    ],
+    copts = ["-Wall", "-Wextra", "-Wpedantic", "-Werror"],
+)
+
+cc_test(
+    name = "order_book_test",
+    srcs = ["order_book_test.cpp"],
+    deps = [
+        ":order_books",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "order_book_bench",
+    srcs = ["order_book_bench.cpp"],
+    deps = [
+        ":order_books",
+        "@google_benchmark//:benchmark",
+    ],
+)

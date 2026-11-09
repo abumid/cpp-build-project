@@ -8,3 +8,6 @@ mem_pool_test_san
 build/
 build-coverage/
 build-san/
+bazel-*
+MODULE.bazel.lock
+coverage_html/

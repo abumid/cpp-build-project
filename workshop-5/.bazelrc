@@ -1,0 +1,4 @@
+build --cxxopt=-std=c++20 --host_cxxopt=-std=c++20
+build --compilation_mode=opt
+test --compilation_mode=dbg
+coverage --combined_report=lcov --instrumentation_filter="^//:order_books$"

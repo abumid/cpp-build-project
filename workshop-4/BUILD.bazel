@@ -1,0 +1,20 @@
+cc_library(
+    name = "order_book",
+    srcs = ["order_book.cpp"],
+    hdrs = [
+        "id_map.h",
+        "mem_pool.h",
+        "order.h",
+        "order_book.h",
+    ],
+    copts = ["-Wall", "-Wextra", "-Wpedantic", "-Werror"],
+)
+
+cc_test(
+    name = "order_book_test",
+    srcs = ["order_book_test.cpp"],
+    deps = [
+        ":order_book",
+        "@googletest//:gtest_main",
+    ],
+)

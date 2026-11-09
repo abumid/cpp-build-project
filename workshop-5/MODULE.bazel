@@ -1,0 +1,4 @@
+module(name = "workshop5_order_books")
+
+bazel_dep(name = "googletest", version = "1.15.2")
+bazel_dep(name = "google_benchmark", version = "1.9.1")

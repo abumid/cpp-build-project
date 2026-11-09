@@ -7,6 +7,7 @@ Homework for the Open Avenues **"C++ Systems for Finance: Build a Trading Exchan
 | [`workshop-2/`](workshop-2) | Intro to Modern C++ | `MemPool<T>`: pre-allocated, cache-local object pool with O(1) allocate/deallocate |
 | [`workshop-3/`](workshop-3) | Exchange Order Book (Part 1) | `Order`, `OrderBook` (`add`, `cancel`, `toString`) on a crypto spot exchange model, allocating from `MemPool` |
 | [`workshop-4/`](workshop-4) | Exchange Order Book (Part 2) | Order book on `std::priority_queue` with lazy deletion; `update`, `disconnect`, TTL, decrement-and-cancel self-trade prevention; GoogleTest, 97.7% line coverage |
+| [`workshop-5/`](workshop-5) | Optimizing the Order Book | Tick-indexed array book (required) and sorted-map book (optional), benchmarked against the Workshop 4 heap with Google Benchmark on five workloads |
 | [`orderbook_lab.html`](orderbook_lab.html) | — | Clickable order book you can open in any browser. It runs a JavaScript port of the same matching rules |
 
 ![Order book](screenshots/01-order-book-light.png)
@@ -18,12 +19,23 @@ cd workshop-2 && make test      # 29 checks
 cd workshop-3 && make test      # 156 checks
 cd workshop-3 && make sanitize  # AddressSanitizer + UBSan
 cd workshop-3 && make bench     # MemPool vs new/delete, order book ns/op
-cd workshop-4 && make test      # GoogleTest, 42 tests (CMake downloads GoogleTest)
-cd workshop-4 && make coverage  # coverage report, fails under 80%
+cd workshop-4 && bazel test //:order_book_test   # GoogleTest, 42 tests
+cd workshop-4 && bazel coverage //:order_book_test
+cd workshop-4 && make test      # same tests via CMake
+cd workshop-4 && make coverage  # gcovr report, fails under 80%
+cd workshop-5 && bazel test //:order_book_test   # 52 tests, all three books
+cd workshop-5 && bazel run //:order_book_bench   # Google Benchmark
+cd workshop-5 && make test && make bench         # same via CMake
 ```
 
 You need a C++20 compiler with `<format>` (GCC 13+ or Clang 17+ with libstdc++ 13).
 To try the front end, download `orderbook_lab.html` and open it in a browser.
+
+## Benchmark (Workshop 5)
+
+![Benchmark](screenshots/09-workshop5-benchmark.png)
+
+On a dense book, the tick-indexed array is about 1.5–2× faster than the sorted map. On a sparse book (about 900 orders over 80,000 ticks) it is about 4× slower, because it has to step over empty ticks. Full results and analysis: [`workshop-5/README.md`](workshop-5/README.md).
 
 ## Screenshots
 

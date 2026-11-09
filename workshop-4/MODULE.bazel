@@ -1,0 +1,3 @@
+module(name = "workshop4_order_book")
+
+bazel_dep(name = "googletest", version = "1.15.2")
